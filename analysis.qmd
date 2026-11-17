@@ -12,3 +12,32 @@ library(rvest)
 library(httr2)
 library(purrr)
 ```
+
+```{r}
+imdb_snapshots |>
+  filter(snap_year %in% c(2015, 2022)) |>
+  select(snap_year, title, year, rank) |>
+  pivot_wider(names_from = snap_year, values_from = rank, names_prefix = "rank_") |>
+  drop_na() |>
+  mutate(
+    rank_change = rank_2015 - rank_2022,
+    decade = paste0(floor(year / 10) * 10, "s")
+  ) |>
+  group_by(decade) |>
+  summarise(avg_change = mean(rank_change), .groups = "drop") |>
+  mutate(direction = if_else(avg_change > 0, "Rose", "Fell")) |>
+  ggplot(aes(x = avg_change, y = decade, fill = direction)) +
+  geom_col() +
+  geom_vline(xintercept = 0, linewidth = 0.8) +
+  scale_fill_manual(values = c("Rose" = "#2a9d8f", "Fell" = "#e76f51")) +
+  labs(
+    title = "Classic Films Slide, 1990s Films Hold Steady",
+    subtitle = "Average rank change in the IMDb Top 250, 2015 to 2022",
+    x = "Average rank change (positive = rose)",
+    y = "Film release decade",
+    fill = NULL,
+    caption = "Films appearing in both 2015 and 2022 snapshots. n = 190 films."
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
